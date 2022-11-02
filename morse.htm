@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="morse.css">
+    
+    <title>Morse Code App</title>
+    <!-- By Adam Amott -->
+</head>
+<body>
+    <header>
+        <h1>Morse Code</h1>
+        <section class="stats">
+            <p>Level: <select id="level" onchange="morseLearner.setLevelFromSelector()"></select></p>
+            <p>Points: <span id="points">0</span></p>
+        </section>
+    </header>
+
+    <main>
+        <h3 id="message">Select the letter you hear</h3>
+        <h1 id="letter-display">Q</h1>
+        <button onclick="morseLearner.playCurrentLetter()" class="controlBtn">Repeat</button>
+        <button onclick="morseLearner.advanceLevel()" class="hide controlBtn" id="nextBtn">Next Level</button>
+
+
+        <section id="keyboard">
+            <button id='q' onclick="morseLearner.enterLetter('q')">Q<div class="percent"> </div></button>
+            <button id='w' onclick="morseLearner.enterLetter('w')">W<div class="percent"></div></button>
+            <button id='e' onclick="morseLearner.enterLetter('e')">E<div class="percent"></div></button>
+            <button id='r' onclick="morseLearner.enterLetter('r')">R<div class="percent"></div></button>
+            <button id='t' onclick="morseLearner.enterLetter('t')">T<div class="percent"></div></button>
+            <button id='y' onclick="morseLearner.enterLetter('y')">Y<div class="percent"></div></button>
+            <button id='u' onclick="morseLearner.enterLetter('u')">U<div class="percent"></div></button>
+            <button id='i' onclick="morseLearner.enterLetter('i')">I<div class="percent"></div></button>
+            <button id='o' onclick="morseLearner.enterLetter('o')">O<div class="percent"></div></button>
+            <button id='p' onclick="morseLearner.enterLetter('p')">P<div class="percent"></div></button>
+            <button id='a' onclick="morseLearner.enterLetter('a')">A<div class="percent"></div></button>
+            <button id='s' onclick="morseLearner.enterLetter('s')">S<div class="percent"></div></button>
+            <button id='d' onclick="morseLearner.enterLetter('d')">D<div class="percent"></div></button>
+            <button id='f' onclick="morseLearner.enterLetter('f')">F<div class="percent"></div></button>
+            <button id='g' onclick="morseLearner.enterLetter('g')">G<div class="percent"></div></button>
+            <button id='h' onclick="morseLearner.enterLetter('h')">H<div class="percent"></div></button>
+            <button id='j' onclick="morseLearner.enterLetter('j')">J<div class="percent"></div></button>
+            <button id='k' onclick="morseLearner.enterLetter('k')">K<div class="percent"></div></button>
+            <button id='l' onclick="morseLearner.enterLetter('l')">L<div class="percent"></div></button>
+            <button id=';' onclick="morseLearner.enterLetter(';')">;<div class="percent"></div></button>
+            <button id='z' onclick="morseLearner.enterLetter('z')">Z<div class="percent"></div></button>
+            <button id='x' onclick="morseLearner.enterLetter('x')">X<div class="percent"></div></button>
+            <button id='c' onclick="morseLearner.enterLetter('c')">C<div class="percent"></div></button>
+            <button id='v' onclick="morseLearner.enterLetter('v')">V<div class="percent"></div></button>
+            <button id='b' onclick="morseLearner.enterLetter('b')">B<div class="percent"></div></button>
+            <button id='n' onclick="morseLearner.enterLetter('n')">N<div class="percent"></div></button>
+            <button id='m' onclick="morseLearner.enterLetter('m')">M<div class="percent"></div></button>
+            <button id='comma' onclick="morseLearner.enterLetter(',')">,<div class="percent"></div></button>
+            <button id='period' onclick="morseLearner.enterLetter('.')">.<div class="percent"></div></button>
+        </section>
+        <section id="level-select">
+            <button onclick="morseGame.nextLevel()" class="hide"></button>
+        </section>
+    </main>
+</body>
+<script src="morse.js"></script> 
+</html>

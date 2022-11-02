@@ -1,0 +1,111 @@
+/* Morse Code Game CSS */
+/* By Adam Amott */
+
+header {
+    position: relative;
+    display: flex;
+    /* grid-template-columns: max-content 250px; */
+    flex-wrap: wrap;
+    background-color: rgb(90, 173, 194);
+    border-radius: 15px;
+}
+
+header h1 {
+    font-size: 2em;
+    text-align: center;
+    margin: 0.2em 0 0.2em 0.25em;
+}
+
+header .stats {
+    margin: -0.5em 0 0 1em;
+    min-width: 200px;
+    font-size: 0.7em;
+}
+
+select {
+    font-size: 1em;
+    background-color: rgb(199, 196, 196);
+}
+
+body {
+    background-color: rgb(185, 221, 218);
+    font-size: 2em;
+    font-family: Verdana, Geneva, Tahoma, sans-serif;
+}
+
+main {
+    text-align: center;
+}
+
+
+#letter-display {
+    margin: 1em auto;
+    max-width: max-content;
+    min-width: 1em; 
+    min-height: 1.2em;
+    border-bottom: 3px black solid;
+}
+
+.controlBtn {
+    font-size: 0.8em;
+    margin-bottom: 10px;
+}
+
+#keyboard {
+    display: grid;
+    grid-template-columns: repeat(10, 1fr);
+    grid-template-rows: 1fr 1fr 1fr;
+    justify-content: center;
+}
+
+#keyboard button {
+    height: 50px;
+    font-size: 1em;
+    border-radius: 15px;
+    border: 1px black solid;
+}
+
+#keyboard button .percent {
+    background-color: rgb(0, 156, 70);
+    height: 4px;
+    width: 0;
+}
+
+.hide {
+    display: none;
+}
+
+#message {
+    font-size: 0.9em;
+}
+
+@media (min-width: 570px) {
+    header h1 {
+        font-size: 2.5em;
+        margin: 0.2em 0 0.2em 0;
+    }
+
+    #message {
+        font-size: 1em;
+    }
+
+}
+
+
+@media (min-width: 770px) {
+    header h1 {
+        font-size: 3em;
+        margin: 0.2em 0 0.2em 0;
+    }
+
+    header .stats {
+        margin: -0.5em 0 0 1em;
+        min-width: 200px;
+        font-size: 1em;
+    }
+
+    #keyboard button {
+        height: 70px;
+        font-size: 1em;
+    }
+}
