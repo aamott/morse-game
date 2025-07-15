@@ -100,14 +100,16 @@ class MorsePlayer {
         setTimeout((() => {1+1;}), this.letterspaceTime);
     }
 
+
     playWordSpace() {
         setTimeout((() => {1+1;}), wordSpaceTime);
     }
 
 
-    playLetter(letter, delaySec = 0) { // delay is in seconds
+    playLetter(letter, startTime = this.context.currentTime + 0.1) { // startTime is an absolute time
         // get morse version of letter
         let morseRow = this.letters[letter];
+
 
         // check for bad values
         if (morseRow == null) {
@@ -116,13 +118,14 @@ class MorsePlayer {
         }
         console.log("letter in morse:", morseRow);
 
+
         //Timing
-        // let delaySec = 0;
-        let startTime = this.context.currentTime; //helps keep all letters on the same timing so they don't sound funny
+        let delaySec = 0; // delay from the start of the letter
        
         // for each morse symbol, test if dot or dash and play it.
         for (let i = 0; i < morseRow.length; i++) {
             let symbol = morseRow[i];
+
 
             if (symbol == ".") {
                 this.playDot(delaySec, startTime + delaySec);
@@ -234,9 +237,9 @@ class MorseLearner {
     }
 
     /*************Gameplay Functions***************/
-    playCurrentLetter(delaySec = 0) {
+    playCurrentLetter(startTime) {
         if (this.currentLetter) {
-            this.morsePlayer.playLetter(this.currentLetter, delaySec);
+            this.morsePlayer.playLetter(this.currentLetter, startTime);
         } else {
             console.log("No letter to play")
         }
@@ -261,7 +264,7 @@ class MorseLearner {
             this.letterDisplay.textContent = '   ';
         }
         // 3. play letter
-        this.playCurrentLetter();
+        this.playCurrentLetter(this.morsePlayer.context.currentTime + 0.1);
     }
 
     advanceLevel() {
@@ -341,18 +344,19 @@ class MorseLearner {
                         this.completeLevel();
                     // display next letter. Display ? for letters that have been seen. Wait a moment before moving on.
                     } else { 
-                        let delaySec = 1;
+                        const delaySec = 1;
+                        const startTime = this.morsePlayer.context.currentTime + delaySec;
                         this.currentLetter = this.levelItems[0]; 
                         
                         // show the letter if its the first time the user sees it. Otherwise, just show an underline
                         if (this.letters[this.currentLetter].points <= 0) {
-                            setTimeout(function(ref) { ref.letterDisplay.textContent = ref.currentLetter }, delaySec * 1000, this);
+                            setTimeout(() => { this.letterDisplay.textContent = this.currentLetter; }, delaySec * 1000);
                         } else {
-                            setTimeout(function(ref) { ref.letterDisplay.textContent = '   ' }, delaySec * 1000, this);
+                            setTimeout(() => { this.letterDisplay.textContent = '   '; }, delaySec * 1000);
                         }
 
                         //play the next letter before exiting
-                        this.playCurrentLetter(delaySec - 0.3);   
+                        this.playCurrentLetter(startTime);
                     }
 
                 // if the game isn't being played, just play the letter's sound.
