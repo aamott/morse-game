@@ -63,12 +63,19 @@ main {
     font-size: 1em;
     border-radius: 15px;
     border: 1px black solid;
+    overflow: hidden;
+}
+
+#keyboard button:active {
+    background-color: #3e8e41;
 }
 
 #keyboard button .percent {
     background-color: rgb(0, 156, 70);
-    height: 4px;
+    height: 30%;
     width: 0;
+    position: relative;
+    left: -5px;
 }
 
 .hide {
@@ -108,4 +115,27 @@ main {
         height: 70px;
         font-size: 1em;
     }
+}
+
+.hide {
+    display: none;
+}
+
+.incorrect {
+    animation: shake 0.5s;
+    color: red;
+}
+
+@keyframes shake {
+    0% { transform: translate(1px, 1px) rotate(0deg); }
+    10% { transform: translate(-1px, -2px) rotate(-1deg); }
+    20% { transform: translate(-3px, 0px) rotate(1deg); }
+    30% { transform: translate(3px, 2px) rotate(0deg); }
+    40% { transform: translate(1px, -1px) rotate(1deg); }
+    50% { transform: translate(-1px, 2px) rotate(-1deg); }
+    60% { transform: translate(-3px, 1px) rotate(0deg); }
+    70% { transform: translate(3px, 1px) rotate(-1deg); }
+    80% { transform: translate(-1px, -1px) rotate(1deg); }
+    90% { transform: translate(1px, 2px) rotate(0deg); }
+    100% { transform: translate(1px, -2px) rotate(-1deg); }
 }
