@@ -5,13 +5,13 @@ class MorsePlayer {
     constructor() {
         /************Audio Setup******************/
         this.context = new AudioContext();
-        this.o = this.context.createOscillator();
-        this.g = this.context.createGain();
-        this.o.connect(this.g);
-        this.g.connect(this.context.destination);
-        this.o.start(0);
-        this.g.gain.value = 0;
-        /************************************** */
+        this.oscillator = this.context.createOscillator();
+        this.gainNode = this.context.createGain();
+        this.oscillator.connect(this.gainNode);
+        this.gainNode.connect(this.context.destination);
+        this.oscillator.frequency.value = 600;
+        this.gainNode.gain.value = 0; // Start silent
+        this.oscillator.start();
         /************Morse Timing*************** */
         this.wpm = 20;
         this.ditSeconds = 60 / (this.wpm * 50);
@@ -20,96 +20,78 @@ class MorsePlayer {
         this.wordSpaceSeconds = this.ditSeconds * 7;
         /************************************* */
 
-        this.letters = { 
-            'a':".-",
-            'b':"-...",
-            'c':"-.-.",
-            'd':"-..",
-            'e':".",
-            'f':"..-.",
-            'g':"--.",
-            'h':"....",
-            'i':"..",
-            'j':".---",
-            'k':"-.-",
-            'l':".-..",
-            'm':"--",
-            'n':"-.",
-            'o':"---",
-            'p':".--.",
-            'q':"--.-",
-            'r':".-.",
-            's':"...",
-            't':"-",
-            'u':"..-",
-            'v':"...-",
-            'w':".--",
-            'x':"-..-",
-            'y':"-.--", 
-            'z':"--..", 
-            ".":".--.-.",
-            ",":"--..--"
-            } 
-        
+        this.letters = {
+            'a': ".-",
+            'b': "-...",
+            'c': "-.-.",
+            'd': "-..",
+            'e': ".",
+            'f': "..-.",
+            'g': "--.",
+            'h': "....",
+            'i': "..",
+            'j': ".---",
+            'k': "-.-",
+            'l': ".-..",
+            'm': "--",
+            'n': "-.",
+            'o': "---",
+            'p': ".--.",
+            'q': "--.-",
+            'r': ".-.",
+            's': "...",
+            't': "-",
+            'u': "..-",
+            'v': "...-",
+            'w': ".--",
+            'x': "-..-",
+            'y': "-.--",
+            'z': "--..",
+            ".": ".--.-.",
+            ",": "--..--"
+        }
+
+    }
+
+    getLetterDuration(letter) {
+        let morseRow = this.letters[letter];
+        if (!morseRow) return 0;
+
+        let duration = 0;
+        for (let i = 0; i < morseRow.length; i++) {
+            let symbol = morseRow[i];
+            if (symbol == ".") {
+                duration += this.ditSeconds;
+            } else if (symbol == "-") {
+                duration += this.dashSeconds;
+            }
+            // add intra-letter space (1 dit) if not the last symbol
+            if (i < morseRow.length - 1) {
+                duration += this.ditSeconds;
+            }
+        }
+        return duration;
     }
 
     checkBeeperRunning() {
         if (this.context.state !== 'running') {
-        this.context.resume();
-      }
+            this.context.resume();
+        }
     }
 
-    playTone(delaySec = 0, startTime = this.context.currentTime) {
-        this.g.gain.setValueAtTime(1, startTime + delaySec);    
-        // this.g.gain.exponentialRampToValueAtTime(
-        //     0.7, 0.04 + startTime + delaySec
-        // );
+    playDot(time) {
+        this.gainNode.gain.setValueAtTime(1, time);
+        this.gainNode.gain.setValueAtTime(0, time + this.ditSeconds);
     }
 
-    stopTone(delaySec = 0, stopTime = this.context.currentTime) {
-        // keeps exponentialRamp from overcoming tone (1 means stay on until right before the ramp)
-        this.g.gain.setValueAtTime(1, stopTime - 0.04 + delaySec ) 
-        // Remove pop at the end of a tone
-        this.g.gain.exponentialRampToValueAtTime(
-            0.000001, stopTime + delaySec
-        );
+    playDash(time) {
+        this.gainNode.gain.setValueAtTime(1, time);
+        this.gainNode.gain.setValueAtTime(0, time + this.dashSeconds);
     }
-
-    playDot(delaySec = 0, startTime = this.context.currentTime) {
-
-        //start tone
-        this.g.gain.setValueAtTime(1, startTime + delaySec);  
-
-        //stop tone. Based on this.stopTone(delaySec+this.ditSeconds, startTime);
-
-        // keeps exponentialRamp from overcoming tone (1 means stay on until right before the ramp)
-        this.g.gain.setValueAtTime(1, startTime + delaySec + this.ditSeconds -0.02) 
-        // Remove pop at the end of a tone
-        this.g.gain.exponentialRampToValueAtTime(
-            0.000001, startTime + delaySec + this.ditSeconds
-        );
-    }
-
-    playDash(delaySec = 0, startTime = this.context.currentTime) {
-        this.playTone(delaySec, startTime);
-        // this.g.gain.setValueAtTime(0, startTime + (delaySec + this.dashSeconds) );
-        this.stopTone(delaySec+this.dashSeconds, startTime);
-    }
-
-    playLetterSpace() {
-        setTimeout((() => {1+1;}), this.letterspaceTime);
-    }
-
-
-    playWordSpace() {
-        setTimeout((() => {1+1;}), wordSpaceTime);
-    }
-
 
     playLetter(letter, startTime = this.context.currentTime + 0.1) { // startTime is an absolute time
         // get morse version of letter
         let morseRow = this.letters[letter];
-
 
         // check for bad values
         if (morseRow == null) {
@@ -118,27 +100,39 @@ class MorsePlayer {
         }
         console.log("letter in morse:", morseRow);
 
-
         //Timing
-        let delaySec = 0; // delay from the start of the letter
-       
+        let time = startTime;
+
         // for each morse symbol, test if dot or dash and play it.
         for (let i = 0; i < morseRow.length; i++) {
             let symbol = morseRow[i];
 
-
             if (symbol == ".") {
-                this.playDot(delaySec, startTime + delaySec);
-                console.log(".");
-                delaySec += this.ditSeconds * 2;
-            }
-            else if (symbol == "-") {
-                this.playDash(delaySec, startTime + delaySec);
-                console.log("-");
-                delaySec += this.ditSeconds * 2;
-            } 
-            else {
+                this.playDot(time);
+                time += this.ditSeconds * 2; // dot is 1 dit, space is 1 dit
+            } else if (symbol == "-") {
+                this.playDash(time);
+                time += this.dashSeconds + this.ditSeconds; // dash is 3 dits, space is 1 dit
+            } else {
                 console.log("ERROR!!! Symbol ", symbol, " Not Recognized!");
+            }
+        }
+    }
+
+    playString(string, startTime = this.context.currentTime + 0.1) {
+        let currentStartTime = startTime;
+
+        for (let i = 0; i < string.length; i++) {
+            const char = string[i].toLowerCase();
+
+            if (char === ' ') {
+                // A word space is 7 dits long. The previous letter already added an inter-letter space of 3 dits.
+                // So, we only need to add the difference.
+                currentStartTime += this.wordSpaceSeconds - this.letterSpaceSeconds;
+            } else if (this.letters[char]) {
+                this.playLetter(char, currentStartTime);
+                // Add the duration of the letter itself, plus the standard 3-dit space that follows every letter.
+                currentStartTime += this.getLetterDuration(char) + this.letterSpaceSeconds;
             }
         }
     }
@@ -153,54 +147,58 @@ class MorseLearner {
         this.letterDisplay = document.getElementById("letter-display");
         this.levelSelector = document.getElementById('level');
         this.nextLevelBtn = document.getElementById("nextBtn");
-        this.currentLetter = null;
+        this.hintBtn = document.getElementById("hintBtn");
+        this.currentItem = null;
+        this.wordInProgress = [];
+        this.currentLetterIndex = 0;
+        this.pendingGameTimeout = null; // Track timeout ID for level switching
         this.letters = {
-            'a': {points: 0, morse: ".-" },
-            'b': {points: 0, morse: "-..."},
-            'c': {points: 0, morse: "-.-."},
-            'd': {points: 0, morse: "-.."},
-            'e': {points: 0, morse: "."},
-            'f': {points: 0, morse: "..-."},
-            'g': {points: 0, morse: "--."},
-            'h': {points: 0, morse: "...."},
-            'i': {points: 0, morse: ".."},
-            'j': {points: 0, morse: ".---"},
-            'k': {points: 0, morse: "-.-"},
-            'l': {points: 0, morse: ".-.."},
-            'm': {points: 0, morse: "--"},
-            'n': {points: 0, morse: "-."},
-            'o': {points: 0, morse: "---"},
-            'p': {points: 0, morse: ".--."},
-            'q': {points: 0, morse: "--.-"},
-            'r': {points: 0, morse: ".-."},
-            's': {points: 0, morse: "..."},
-            't': {points: 0, morse: "-"},
-            'u': {points: 0, morse: "..-"},
-            'v': {points: 0, morse: "...-"},
-            'w': {points: 0, morse: ".--"},
-            'x': {points: 0, morse: "-..-"},
-            'y': {points: 0, morse: "-.--"}, 
-            'z': {points: 0, morse: "--.."}, 
-            ".": {points: 0, morse: ".--.-."},
-            ",": {points: 0, morse: "--..--"}
+            'a': { points: 0, morse: ".-" },
+            'b': { points: 0, morse: "-..." },
+            'c': { points: 0, morse: "-.-." },
+            'd': { points: 0, morse: "-.." },
+            'e': { points: 0, morse: "." },
+            'f': { points: 0, morse: "..-." },
+            'g': { points: 0, morse: "--." },
+            'h': { points: 0, morse: "...." },
+            'i': { points: 0, morse: ".." },
+            'j': { points: 0, morse: ".---" },
+            'k': { points: 0, morse: "-.-" },
+            'l': { points: 0, morse: ".-.." },
+            'm': { points: 0, morse: "--" },
+            'n': { points: 0, morse: "-." },
+            'o': { points: 0, morse: "---" },
+            'p': { points: 0, morse: ".--." },
+            'q': { points: 0, morse: "--.-" },
+            'r': { points: 0, morse: ".-." },
+            's': { points: 0, morse: "..." },
+            't': { points: 0, morse: "-" },
+            'u': { points: 0, morse: "..-" },
+            'v': { points: 0, morse: "...-" },
+            'w': { points: 0, morse: ".--" },
+            'x': { points: 0, morse: "-..-" },
+            'y': { points: 0, morse: "-.--" },
+            'z': { points: 0, morse: "--.." },
+            ".": { points: 0, morse: ".--.-." },
+            ",": { points: 0, morse: "--..--" }
         }
         this.levels = {
-            1: {items:['e','t'],message:""},
-            2: {items:['e','t','a','n'], message:"With a few simple letters, you can already start to send messages"},
-            3: {items:['e','t','a','n','i','s'], message:""},
-            4: {items:['e','t','a','n','i','s','o','h'], message:""},
-            5: {items:['e','t','a','n','i','s','o','h','r','d'], message:""},
-            6: {items:['e','t','a','n','i','s','o','h','r','d','l','u'], message:""},
-            7: {items:['e','t','a','n','i','s','o','h','r','d','l','u','c','m'], message:""},
-            8: {items:['e','t','a','n','i','s','o','h','r','d','l','u','c','m','f','w'], message:""},
-            9: {items:['e','t','a','n','i','s','o','h','r','d','l','u','c','m','f','w','y','g'], message:""},
-            10: {items:['e','t','a','n','i','s','o','h','r','d','l','u','c','m','f','w','y','g','p','b'], message:""},
-            11: {items:['e','t','a','n','i','s','o','h','r','d','l','u','c','m','f','w','y','g','p','b','v','k'], message:""},
-            12: {items:['e','t','a','n','i','s','o','h','r','d','l','u','c','m','f','w','y','g','p','b','v','k','q','j'], message:""},
-            13: {items:['e','t','a','n','i','s','o','h','r','d','l','u','c','m','f','w','y','g','p','b','v','k','q','j','x','z'], message:""},
-            13: {items:['e','t','a','n','i','s','o','h','r','d','l','u','c','m','f','w','y','g','p','b','v','k','q','j','x','z', '.', ','], message:""},
-            // 14: {items:["sos"], message:"'Save Our Ship', is a common acronym. It means, 'Help me!'"} // TODO: change playLetter() to playMorse(), which can play letters or phrases
-            // 15: {items:[], message:""},
+            1: { items: ['e', 't'], message: "" },
+            2: { items: ['e', 't', 'a', 'n'], message: "With a few simple letters, you can already start to send messages" },
+            3: { items: ['e', 't', 'a', 'n', 'i', 's'], message: "" },
+            4: { items: ['e', 't', 'a', 'n', 'i', 's', 'o', 'h'], message: "" },
+            5: { items: ['e', 't', 'a', 'n', 'i', 's', 'o', 'h', 'r', 'd'], message: "" },
+            6: { items: ['e', 't', 'a', 'n', 'i', 's', 'o', 'h', 'r', 'd', 'l', 'u'], message: "" },
+            7: { items: ['e', 't', 'a', 'n', 'i', 's', 'o', 'h', 'r', 'd', 'l', 'u', 'c', 'm'], message: "" },
+            8: { items: ['e', 't', 'a', 'n', 'i', 's', 'o', 'h', 'r', 'd', 'l', 'u', 'c', 'm', 'f', 'w'], message: "" },
+            9: { items: ['e', 't', 'a', 'n', 'i', 's', 'o', 'h', 'r', 'd', 'l', 'u', 'c', 'm', 'f', 'w', 'y', 'g'], message: "" },
+            10: { items: ['e', 't', 'a', 'n', 'i', 's', 'o', 'h', 'r', 'd', 'l', 'u', 'c', 'm', 'f', 'w', 'y', 'g', 'p', 'b'], message: "" },
+            11: { items: ['e', 't', 'a', 'n', 'i', 's', 'o', 'h', 'r', 'd', 'l', 'u', 'c', 'm', 'f', 'w', 'y', 'g', 'p', 'b', 'v', 'k'], message: "" },
+            12: { items: ['e', 't', 'a', 'n', 'i', 's', 'o', 'h', 'r', 'd', 'l', 'u', 'c', 'm', 'f', 'w', 'y', 'g', 'p', 'b', 'v', 'k', 'q', 'j'], message: "" },
+            13: { items: ['e', 't', 'a', 'n', 'i', 's', 'o', 'h', 'r', 'd', 'l', 'u', 'c', 'm', 'f', 'w', 'y', 'g', 'p', 'b', 'v', 'k', 'q', 'j', 'x', 'z'], message: "" },
+            14: { items: ['e', 't', 'a', 'n', 'i', 's', 'o', 'h', 'r', 'd', 'l', 'u', 'c', 'm', 'f', 'w', 'y', 'g', 'p', 'b', 'v', 'k', 'q', 'j', 'x', 'z', '.', ','], message: "" },
+            15: { items: ["sos", "taco"], message: "'Save Our Ship', is a common acronym. It means, 'Help me!'" },
+            16: { items: [], message: "" },
         }
 
         // Load any previous data
@@ -211,15 +209,15 @@ class MorseLearner {
         }
 
         // Populate the level selector
-        for (let level in this.levels ) {
+        for (let level in this.levels) {
             let option = document.createElement("option");
             console.log("Value of level in for loop: ", level);
             option.value = level;
             option.innerText = level;
             this.levelSelector.appendChild(option);
         }
-        
-        this.playGame();
+
+        this.setLevel(this.currentLevel);
     }
 
     checkBeeperRunning() {
@@ -237,44 +235,70 @@ class MorseLearner {
     }
 
     /*************Gameplay Functions***************/
-    playCurrentLetter(startTime) {
-        if (this.currentLetter) {
-            this.morsePlayer.playLetter(this.currentLetter, startTime);
+    playCurrentItem(startTime) {
+        if (this.currentItem) {
+            if (this.currentItem.length > 1) {
+                this.morsePlayer.playString(this.currentItem, startTime);
+            } else {
+                this.morsePlayer.playLetter(this.currentItem, startTime);
+            }
         } else {
-            console.log("No letter to play")
+            console.log("No item to play")
         }
     }
 
     playGame() {
+        // If the level is complete, do nothing.
+        if (this.levelItems.length === 0) {
+            this.completeLevel();
+            return;
+        }
+
         // 0. set the game as playing
         this.playing = true;
+        this.wordInProgress = [];
+        this.currentLetterIndex = 0;
 
-        // Shorthand for level items referencing
-        this.levelItems = this.levels[this.currentLevel].items
-        // 1. shuffle level
-        this.shuffleList(this.levelItems);
-
-        // 2. get the letter.
-        this.currentLetter = this.levelItems[0];
+        // 1. get the next item from the list.
+        // The list is now populated and shuffled in setLevel.
+        this.currentItem = this.levelItems[0];
         this.levelSelector.options.selectedIndex = this.currentLevel - 1;
+
         // 3. display the letter the first time. Then display ' '
-        if (this.letters[this.currentLetter].points == 0) {
-            this.letterDisplay.textContent = this.currentLetter;
+        if (this.currentItem.length > 1) {
+            this.letterDisplay.textContent = "_ ".repeat(this.currentItem.length);
+            this.hintBtn.classList.remove("hide");
+        } else if (this.letters[this.currentItem]?.points == 0) {
+            this.letterDisplay.textContent = this.currentItem;
+            this.hintBtn.classList.add("hide");
         } else {
             this.letterDisplay.textContent = '   ';
+            this.hintBtn.classList.add("hide");
         }
         // 3. play letter
-        this.playCurrentLetter(this.morsePlayer.context.currentTime + 0.1);
+        this.playCurrentItem(this.morsePlayer.context.currentTime + 0.1);
     }
 
     advanceLevel() {
-        this.playing = true;
-        this.setLevel(this.currentLevel + 1);
-        this.playGame();
+        if (this.currentLevel < Object.keys(this.levels).length) {
+            this.currentLevel++;
+            this.setLevel(this.currentLevel);
+        } else {
+            this.letterDisplay.textContent = "You win!";
+        }
+    }
+
+    giveHint() {
+        if (!this.playing || this.currentItem.length <= 1) return;
+
+        const correctLetter = this.currentItem[this.currentLetterIndex];
+        this.wordInProgress[this.currentLetterIndex] = correctLetter;
+        this.letterDisplay.textContent = this.wordInProgress.join(' ') + ' ' + '_ '.repeat(this.currentItem.length - this.wordInProgress.length);
+        this.morsePlayer.playLetter(correctLetter);
     }
 
     completeLevel() {
-        this.letterDisplay.textContent = "Level complete!"
+        this.letterDisplay.textContent = "Level complete!";
         console.log("Level Complete! To move to level", this.currentLevel, ", click 'Next'");
         this.nextLevelBtn.classList.remove("hide");
         this.playing = false;
@@ -285,9 +309,25 @@ class MorseLearner {
     }
 
     setLevel(level) {
+        // Cancel any pending game timeout to prevent race conditions
+        if (this.pendingGameTimeout) {
+            clearTimeout(this.pendingGameTimeout);
+            this.pendingGameTimeout = null;
+        }
+
+        // Explicitly reset word-related state variables
+        this.wordInProgress = [];
+        this.currentLetterIndex = 0;
+        this.currentItem = null;
+
         this.levelSelector.options.selectedIndex = level - 1;
         this.currentLevel = level;
         this.nextLevelBtn.classList.add("hide");
+
+        // Get the items for the level and shuffle them
+        this.levelItems = [...this.levels[this.currentLevel].items]; // Create a copy
+        this.shuffleList(this.levelItems);
+
         this.playGame();
 
         // Fix points (drop all letters below 100% proficiency)
@@ -300,76 +340,64 @@ class MorseLearner {
     }
 
     enterLetter(guess) {
-        //check that the guess is actually in our letter list
-        if ( this.letters[guess]) {
-            //check that the game is being played
-            if (this.playing) {
-                // check for level completion
-                if (this.levelItems.length != 0) { 
-                    // 4. validate input.
-                    //     a. if good, add points.
-                    if (guess == this.currentLetter) { 
-                        this.letterDisplay.textContent = "Correct!";
+        if (!this.playing || !this.letters[guess]) return;
 
-                        this.addPoints(100);
-                        this.addLetterPercent(guess, 34);
-                        console.log("Correct!")
+        if (this.currentItem.length > 1) {
+            // Word guessing logic
+            if (guess === this.currentItem[this.currentLetterIndex]) {
+                this.wordInProgress[this.currentLetterIndex] = guess;
+                this.letterDisplay.textContent = this.wordInProgress.join(' ') + ' ' + '_ '.repeat(this.currentItem.length - (this.currentLetterIndex + 1));
+                this.currentLetterIndex++;
 
-                        // add the guess back until it's at 100% fluency
-                        if (this.letters[guess].points < 100) { 
-                            this.levelItems.push(guess);
-                        }
-
-                    } else {
-                        //     b. if bad, remove points
-                        this.letterDisplay.textContent = "Incorrect 😕";
-
-                        this.addPoints(-50);
-                        this.addLetterPercent(this.currentLetter, -34);
-                        console.log("Wrong guess!");
-
-                        this.levelItems.unshift(this.currentLetter);
-                        // if the letter guessed has been learned, push it to the array so they can practice. Otherwise, it was accidental
-                        if (this.levelItems.includes(guess)) { 
-                            this.levels[this.currentLevel].items.unshift(guess);
-                            this.addLetterPercent(guess, -34);
-                        }
-                    }
-
-
-                    // 5. move to next item.
+                if (this.currentLetterIndex >= this.currentItem.length) {
+                    // Word is complete
+                    this.letterDisplay.textContent = "Correct!";
+                    this.addPoints(100);
                     this.levelItems.shift();
-                    // check if the level was completed
-                    if (this.levelItems.length == 0) {
-                        this.completeLevel();
-                    // display next letter. Display ? for letters that have been seen. Wait a moment before moving on.
-                    } else { 
-                        const delaySec = 1;
-                        const startTime = this.morsePlayer.context.currentTime + delaySec;
-                        this.currentLetter = this.levelItems[0]; 
-                        
-                        // show the letter if its the first time the user sees it. Otherwise, just show an underline
-                        if (this.letters[this.currentLetter].points <= 0) {
-                            setTimeout(() => { this.letterDisplay.textContent = this.currentLetter; }, delaySec * 1000);
-                        } else {
-                            setTimeout(() => { this.letterDisplay.textContent = '   '; }, delaySec * 1000);
-                        }
 
-                        //play the next letter before exiting
-                        this.playCurrentLetter(startTime);
-                    }
+                    // Reset word state for next word
+                    this.currentLetterIndex = 0;
+                    this.wordInProgress = [];
 
-                // if the game isn't being played, just play the letter's sound.
-                }else { // level complete
-                    this.completeLevel();
+                    // Schedule next word/level with proper timeout tracking
+                    this.pendingGameTimeout = setTimeout(() => {
+                        this.playGame();
+                        this.pendingGameTimeout = null;
+                    }, 1000);
                 }
-            } else { // this.playing. game is not being played
-                this.morsePlayer.playLetter(guess);
+            } else {
+                // Incorrect letter guess
+                this.letterDisplay.classList.add('incorrect');
+                setTimeout(() => this.letterDisplay.classList.remove('incorrect'), 500);
+                this.addPoints(-10);
             }
-        } else { // check input validity
-            console.log("Invalid guess in 'enterLetters():", guess);
+        } else {
+            // Single letter guessing logic
+            if (guess == this.currentItem) {
+                this.letterDisplay.textContent = "Correct!";
+                this.addPoints(100);
+                this.addLetterPercent(this.currentItem, 34);
+                if (this.letters[this.currentItem]?.points < 100) {
+                    this.levelItems.push(this.currentItem);
+                }
+            } else {
+                this.letterDisplay.textContent = "Incorrect 😕";
+                this.addPoints(-50);
+                this.addLetterPercent(this.currentItem, -34);
+                this.levelItems.unshift(this.currentItem);
+            }
+            this.levelItems.shift();
+            if (this.levelItems.length == 0) {
+                this.completeLevel();
+            } else {
+                // Store the timeout ID so it can be canceled if needed
+                this.pendingGameTimeout = setTimeout(() => {
+                    this.playGame();
+                    this.pendingGameTimeout = null;
+                }, 1000);
+            }
         }
-    }
+    };
 
     addPoints(points) {
         this.points += points;
@@ -394,59 +422,54 @@ class MorseLearner {
                 return;
         }
 
-        document.querySelector("#" + letter + " .percent").style.width = this.letters[letter].points + '%'; 
+        document.querySelector("#" + letter + " .percent").style.width = this.letters[letter].points + '%';
     }
 
     /***************Utility Functions*******************/
     shuffleList(list) {
-        console.log(list);
-        
         let tempValue;
 
-        list.forEach((element, currentIndex) => {
-
-            let randomIndex = Math.floor(Math.random() * list.length);
+        for (let currentIndex = list.length - 1; currentIndex > 0; currentIndex--) {
+            let randomIndex = Math.floor(Math.random() * (currentIndex + 1));
 
             tempValue = list[currentIndex];
             list[currentIndex] = list[randomIndex];
             list[randomIndex] = tempValue;
-        });
-        console.log(list);
-        
+        }
     }
 }
 
 
+
+
+/*********** Start the Game *********************************/
+let morseLearner = null;
+const startGame = () => {
+    morseLearner = new MorseLearner();
+    window.removeEventListener("click", startGame);
+};
+window.addEventListener("click", startGame);
 
 
 /***********General Utilities (add to a file later)*************/
 // Adds a sleep function to javascript...kind of. use a .then after sleep to call something back. 
-let sleep = function (milliseconds) {
-    return new Promise((resolve) => setTimeout(resolve, time));
-}
+const sleep = (milliseconds) => {
+    return new Promise((resolve) => setTimeout(resolve, milliseconds));
+};
 
 // obtained from w3Schools.com
 function getCookie(cname) {
-    var name = cname + "=";
-    var decodedCookie = decodeURIComponent(document.cookie);
-    var ca = decodedCookie.split(';');
-    for(var i = 0; i <ca.length; i++) {
-      var c = ca[i];
-      while (c.charAt(0) == ' ') {
-        c = c.substring(1);
-      }
-      if (c.indexOf(name) == 0) {
-        return c.substring(name.length, c.length);
-      }
+    let name = cname + "=";
+    let decodedCookie = decodeURIComponent(document.cookie);
+    let ca = decodedCookie.split(';');
+    for (let i = 0; i < ca.length; i++) {
+        let c = ca[i];
+        while (c.charAt(0) == ' ') {
+            c = c.substring(1);
+        }
+        if (c.indexOf(name) == 0) {
+            return c.substring(name.length, c.length);
+        }
     }
     return "";
-  }
-
-
-/*********** Start the Game *********************************/
-morseLearner = null;
-startGame = (x) => {
-	morseLearner = new MorseLearner();
-	window.removeEventListener("click", startGame)
 }
-window.addEventListener("click", startGame)
