@@ -345,6 +345,7 @@ class MorseLearner {
         if (this.currentItem.length > 1) {
             // Word guessing logic
             if (guess === this.currentItem[this.currentLetterIndex]) {
+                this.addLetterPercent(guess, 15); // Grant progress for the letter
                 this.wordInProgress[this.currentLetterIndex] = guess;
                 this.letterDisplay.textContent = this.wordInProgress.join(' ') + ' ' + '_ '.repeat(this.currentItem.length - (this.currentLetterIndex + 1));
                 this.currentLetterIndex++;
